@@ -387,8 +387,7 @@ export const ModelName = {
   Driver: 'Driver',
   DriverStatusHistory: 'DriverStatusHistory',
   Vehicle: 'Vehicle',
-  VehicleStatusHistory: 'VehicleStatusHistory',
-  DriverVehicle: 'DriverVehicle'
+  VehicleStatusHistory: 'VehicleStatusHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -404,7 +403,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "driver" | "driverStatusHistory" | "vehicle" | "vehicleStatusHistory" | "driverVehicle"
+    modelProps: "driver" | "driverStatusHistory" | "vehicle" | "vehicleStatusHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -704,80 +703,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    DriverVehicle: {
-      payload: Prisma.$DriverVehiclePayload<ExtArgs>
-      fields: Prisma.DriverVehicleFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.DriverVehicleFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.DriverVehicleFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>
-        }
-        findFirst: {
-          args: Prisma.DriverVehicleFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.DriverVehicleFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>
-        }
-        findMany: {
-          args: Prisma.DriverVehicleFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>[]
-        }
-        create: {
-          args: Prisma.DriverVehicleCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>
-        }
-        createMany: {
-          args: Prisma.DriverVehicleCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.DriverVehicleCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>[]
-        }
-        delete: {
-          args: Prisma.DriverVehicleDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>
-        }
-        update: {
-          args: Prisma.DriverVehicleUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>
-        }
-        deleteMany: {
-          args: Prisma.DriverVehicleDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.DriverVehicleUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.DriverVehicleUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>[]
-        }
-        upsert: {
-          args: Prisma.DriverVehicleUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriverVehiclePayload>
-        }
-        aggregate: {
-          args: Prisma.DriverVehicleAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateDriverVehicle>
-        }
-        groupBy: {
-          args: Prisma.DriverVehicleGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.DriverVehicleGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.DriverVehicleCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.DriverVehicleCountAggregateOutputType> | number
-        }
-      }
-    }
   }
 } & {
   other: {
@@ -864,16 +789,6 @@ export const VehicleStatusHistoryScalarFieldEnum = {
 } as const
 
 export type VehicleStatusHistoryScalarFieldEnum = (typeof VehicleStatusHistoryScalarFieldEnum)[keyof typeof VehicleStatusHistoryScalarFieldEnum]
-
-
-export const DriverVehicleScalarFieldEnum = {
-  id: 'id',
-  date: 'date',
-  vehicleId: 'vehicleId',
-  driverId: 'driverId'
-} as const
-
-export type DriverVehicleScalarFieldEnum = (typeof DriverVehicleScalarFieldEnum)[keyof typeof DriverVehicleScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1110,7 +1025,6 @@ export type GlobalOmitConfig = {
   driverStatusHistory?: Prisma.DriverStatusHistoryOmit
   vehicle?: Prisma.VehicleOmit
   vehicleStatusHistory?: Prisma.VehicleStatusHistoryOmit
-  driverVehicle?: Prisma.DriverVehicleOmit
 }
 
 /* Types for Logging */

@@ -54,8 +54,7 @@ export const ModelName = {
   Driver: 'Driver',
   DriverStatusHistory: 'DriverStatusHistory',
   Vehicle: 'Vehicle',
-  VehicleStatusHistory: 'VehicleStatusHistory',
-  DriverVehicle: 'DriverVehicle'
+  VehicleStatusHistory: 'VehicleStatusHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -121,16 +120,6 @@ export const VehicleStatusHistoryScalarFieldEnum = {
 } as const
 
 export type VehicleStatusHistoryScalarFieldEnum = (typeof VehicleStatusHistoryScalarFieldEnum)[keyof typeof VehicleStatusHistoryScalarFieldEnum]
-
-
-export const DriverVehicleScalarFieldEnum = {
-  id: 'id',
-  date: 'date',
-  vehicleId: 'vehicleId',
-  driverId: 'driverId'
-} as const
-
-export type DriverVehicleScalarFieldEnum = (typeof DriverVehicleScalarFieldEnum)[keyof typeof DriverVehicleScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -62,7 +62,7 @@ model Driver {
   fixedVehicleId String?  @unique @db.Uuid
 
   statusHistory  DriverStatusHistory[]
-  driverVehicles DriverVehicle[]
+  
 
   @@index([isActive])
   @@map("drivers")
@@ -93,7 +93,7 @@ model Vehicle {
 
   fixedDriver    Driver?                @relation("DriverFixedVehicle")
   statusHistory  VehicleStatusHistory[]
-  driverVehicles DriverVehicle[]
+  
 
   @@index([isActive])
   @@map("vehicles")
@@ -109,19 +109,4 @@ model VehicleStatusHistory {
   vehicleId String  @db.Uuid
 
   @@map("vehicle_status_history")
-}
-
-model DriverVehicle {
-  id   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  date DateTime @default(now())
-
-  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
-  vehicleId String  @db.Uuid
-
-  driver   Driver @relation(fields: [driverId], references: [id])
-  driverId String @db.Uuid
-
-  @@index([vehicleId])
-  @@index([driverId])
-  @@map("driver_vehicles")
 }

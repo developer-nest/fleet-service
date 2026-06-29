@@ -37,8 +37,3 @@ export type Vehicle = Prisma.VehicleModel
  * 
  */
 export type VehicleStatusHistory = Prisma.VehicleStatusHistoryModel
-/**
- * Model DriverVehicle
- * 
- */
-export type DriverVehicle = Prisma.DriverVehicleModel
