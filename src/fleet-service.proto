@@ -1,0 +1,311 @@
+
+syntax = "proto3";
+
+package fleetService;
+
+// ═══════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════
+
+// Situaciones del CARRO
+enum CarStatus {
+  AVAILABLE = 0;  // disponible
+  WORKSHOP  = 1;  // taller
+  INTERIOR  = 2;  // interior del país
+  CITY      = 3;
+  OTHER     = 4;  // trabajando en la ciudad
+}
+
+
+
+
+// Situaciones del CHOFER
+enum DriverSituation {
+  UNKNOWN = 0;
+  AVAILABLE = 1;  // disponible
+  WORKSHOP  = 2;  // taller
+  VACATION  = 3;  // vacaciones
+  DAY_OFF   = 4;  // franco
+  CITY      = 5;  // trabajando en la ciudad
+  INTERIOR  = 6;  // en el interior
+  OTHER     = 7;  // otro
+}
+
+// ═══════════════════════════════════════════════
+// MENSAJES COMPARTIDOS
+// ═══════════════════════════════════════════════
+
+message ById {
+  string id = 1;
+}
+
+message PaginationDto {
+  int32 page  = 1;
+  int32 limit = 2;
+  bool isActive = 3;
+  string status = 4;
+}
+
+// ═══════════════════════════════════════════════
+// DRIVER SERVICE
+// ═══════════════════════════════════════════════
+
+
+service DriverService {
+  rpc Create (CreateDriverDto) returns (Driver) {}
+  rpc FindAll (PaginationDto) returns (DriverList) {}
+  rpc FindOne (ById) returns (DriverDetail) {}
+  rpc Update (UpdateDriverDto) returns (Driver) {}
+  rpc Remove (ById) returns (Driver) {}
+}
+
+
+message Driver {
+  string id = 1;
+  string fullName = 2;
+  string address = 3;
+  string idCard = 4;  
+  bool isActive = 5;
+  string category  = 6;
+  string fixedVehicleId = 7;
+  string currentSituation = 8;
+}
+
+message DriverDetail {
+  string id = 1;
+  string fullName = 2;
+  string address = 3;
+  string idCard = 4;  
+  bool isActive = 5;
+  string category  = 6;
+  string fixedVehicleId = 7;   // nullable
+  Vehicle fixedVehicle   = 8;  // nullable: populated si tiene carro fijo
+  string currentSituation = 9;
+  repeated DriverStatusHistory statusHistory = 10;
+}
+
+message CreateDriverDto {  
+  string fullName = 1;
+  string address = 2;
+  string idCard = 3;
+  bool isActive = 4;
+  string category  = 6;
+  string fixedVehicleId = 7;
+  string currentSituation = 8;
+  }
+
+message UpdateDriverDto {  
+  string id = 1;
+  string fullName = 2;
+  string address = 3;
+  string idCard = 4;  
+  bool isActive = 5;
+  string category  = 6;
+  string fixedVehicleId = 7;
+  string currentSituation = 8;
+}
+
+message DriverList {
+  repeated Driver items = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+}
+
+// ─── Vehicle ───────────────────────────
+
+service VehicleService { 
+  rpc Create (CreateVehicleDto) returns (Vehicle) {}
+  rpc FindAll (PaginationDto) returns (VehicleList) {}
+  rpc FindOne (ById) returns (VehicleDetail) {}
+  rpc Update (UpdateVehicleDto) returns (Vehicle) {}
+  rpc Remove (ById) returns (Vehicle) {}
+}
+
+
+
+
+
+message Vehicle {
+  string id = 1;
+  string numCar = 2;
+  int32 seatCount = 3;
+  float currentMileage = 4;  
+  bool isActive = 5;
+  string brand = 6;
+  string currentSituation = 7;
+}
+
+message VehicleDetail {
+  string id             = 1;
+  string numCar         = 2;
+  string brand          = 3;
+  int32  seatCount      = 4;
+  float  currentMileage = 5;
+  bool   isActive       = 6;
+  Driver fixedDriver    = 7;  // nullable: populated si tiene chofer fijo
+  string currentSituation = 8;
+  repeated VehicleStatusHistory statusHistory = 9;
+}
+
+message CreateVehicleDto {  
+  string numCar = 1;
+  int32 seatCount = 2;
+  float currentMileage = 3;
+  bool isActive = 4;
+  string brand = 5;
+  string currentSituation = 6;
+}
+
+message UpdateVehicleDto {  
+  string id = 1;
+  string numCar = 2;
+  int32 seatCount = 3;
+  float currentMileage = 4;
+  bool isActive = 5;
+  string brand = 6;
+  string currentSituation = 7;
+  
+}
+
+message VehicleList {
+  repeated Vehicle items = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+}
+
+// ═══════════════════════════════════════════════
+// DRIVER-VEHICLE SERVICE (relación carro-chofer)
+// ═══════════════════════════════════════════════
+
+service DriverVehicleService {
+  rpc Assign  (AssignDriverVehicleDto) returns (DriverVehicle)     {}
+  rpc FindAll (DriverVehicleFilter)    returns (DriverVehicleList) {}
+  rpc FindOne (ById)                   returns (DriverVehicle)     {}
+  rpc Remove  (ById)                   returns (DriverVehicle)     {}
+}
+
+message DriverVehicle {
+  string  id        = 1;
+  string  date      = 2;
+  string  driverId  = 3;
+  string  vehicleId = 4;
+  Driver  driver    = 5;  // populated on FindOne
+  Vehicle vehicle   = 6;  // populated on FindOne
+}
+
+message AssignDriverVehicleDto {
+  string driverId  = 1;
+  string vehicleId = 2;
+}
+
+message DriverVehicleFilter {
+  int32  page      = 1;
+  int32  limit     = 2;
+  string driverId  = 3;  // opcional
+  string vehicleId = 4;  // opcional
+  string date      = 5;  // opcional: filtrar por fecha
+}
+
+message DriverVehicleList {
+  repeated DriverVehicle items      = 1;
+  int32                  total      = 2;
+  int32                  page       = 3;
+  int32                  limit      = 4;
+  int32                  totalPages = 5;
+}
+
+// ═══════════════════════════════════════════════
+// DRIVER STATUS HISTORY SERVICE (situación del chofer)
+// ═══════════════════════════════════════════════
+
+
+service DriverStatusService {
+  rpc Create  (CreateDriverStatusDto) returns (DriverStatusHistory)     {}
+  rpc FindAll (DriverStatusFilter)    returns (DriverStatusHistoryList) {}
+  rpc FindOne (ById)                  returns (DriverStatusHistory)     {}
+}
+
+message DriverStatusHistory {
+  string          id         = 1;
+  string          date       = 2;
+  DriverSituation status     = 3;
+  string          returnDate = 4;  // nullable: solo VACATION o INTERIOR
+  string          driverId   = 5;
+  Driver          driver     = 6;  // populated on FindOne
+}
+
+message CreateDriverStatusDto {
+  DriverSituation status     = 1;
+  string          driverId   = 2;
+  string          returnDate = 3;  // opcional: solo VACATION o INTERIOR
+}
+
+message DriverStatusFilter {
+  int32           page      = 1;
+  int32           limit     = 2;
+  string          driverId  = 3;  // opcional
+  DriverSituation status    = 4;  // opcional
+  string          date      = 5;  // opcional: filtrar por fecha
+}
+
+message DriverStatusHistoryList {
+  repeated DriverStatusHistory items      = 1;
+  int32                        total      = 2;
+  int32                        page       = 3;
+  int32                        limit      = 4;
+  int32                        totalPages = 5;
+}
+
+
+
+// ═══════════════════════════════════════════════
+// VEHICLE STATUS HISTORY SERVICE (situación del carro)
+// ═══════════════════════════════════════════════
+
+service VehicleStatusService {
+  rpc Create  (CreateVehicleStatusDto) returns (VehicleStatusHistory)     {}
+  rpc FindAll (VehicleStatusFilter)    returns (VehicleStatusHistoryList) {}
+  rpc FindOne (ById)                   returns (VehicleStatusHistory)     {}
+}
+
+message VehicleStatusHistory {
+  string    id         = 1;
+  string    date       = 2;
+  CarStatus status     = 3;
+  string    returnDate = 4;  // nullable: solo INTERIOR
+  string    vehicleId  = 5;
+  Vehicle   vehicle    = 6;  // populated on FindOne
+}
+
+message CreateVehicleStatusDto {
+  CarStatus status     = 1;
+  string    vehicleId  = 2;
+  string    returnDate = 3;  // opcional: solo INTERIOR
+}
+
+message VehicleStatusFilter {
+  int32     page      = 1;
+  int32     limit     = 2;
+  string    vehicleId = 3;  // opcional
+  CarStatus status    = 4;  // opcional
+  string    date      = 5;  // opcional: filtrar por fecha
+}
+
+message VehicleStatusHistoryList {
+  repeated VehicleStatusHistory items      = 1;
+  int32                         total      = 2;
+  int32                         page       = 3;
+  int32                         limit      = 4;
+  int32                         totalPages = 5;
+}
+
+
+
+
+
+
+

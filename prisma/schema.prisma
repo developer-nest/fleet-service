@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+// enum Status {
+//   CIUDAD     @map("trabajando en la ciudad")
+//   INTERIOR   @map("interior")
+//   DISPONIBLE @map("disponible")
+//   TALLER     @map("taller")
+//   OTRO       @map("otro")
+//   VACACIONES @map("vacaciones")
+//   FRANCO     @map("franco")
+// }
+
+// ═══════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════
+
+// Situaciones del CARRO
+enum CarStatus {
+  AVAILABLE // disponible
+  WORKSHOP // taller
+  INTERIOR // interior del país
+  CITY
+  OTHER // trabajando en la ciudad
+}
+
+// Situaciones del CHOFER
+enum DriverSituation {
+  AVAILABLE // disponible
+  WORKSHOP // taller
+  VACATION // vacaciones
+  DAY_OFF // franco
+  CITY // trabajando en la ciudad
+  INTERIOR // en el interior
+  OTHER // otro
+}
+
+// ─── Models ───────────────────────────────────
+
+model Driver {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullName         String          @map("full_name") @db.Text
+  address          String          @db.Text
+  idCard           String          @unique @map("id_card") @db.Text
+  isActive         Boolean         @default(true) @map("is_active")
+  category         String          @db.Text
+  currentSituation DriverSituation @default(AVAILABLE) @map("current_situation")
+
+  fixedVehicle   Vehicle? @relation("DriverFixedVehicle", fields: [fixedVehicleId], references: [id])
+  fixedVehicleId String?  @unique @db.Uuid
+
+  statusHistory  DriverStatusHistory[]
+  driverVehicles DriverVehicle[]
+
+  @@index([isActive])
+  @@map("drivers")
+}
+
+model DriverStatusHistory {
+  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date       DateTime        @default(now())
+  status     DriverSituation
+  returnDate DateTime?       @db.Date // nullable: solo si está en vacaciones o interior
+
+  driver   Driver @relation(fields: [driverId], references: [id])
+  driverId String @db.Uuid
+
+  @@index([driverId])
+  @@index([status])
+  @@map("driver_status_history")
+}
+
+model Vehicle {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  numCar           String    @unique @map("num_car")
+  seatCount        Int       @map("seat_count")
+  currentMileage   Float     @default(0) @map("current_mileage")
+  brand            String
+  isActive         Boolean   @default(true) @map("is_active")
+  currentSituation CarStatus @default(AVAILABLE) @map("current_situation")
+
+  fixedDriver    Driver?                @relation("DriverFixedVehicle")
+  statusHistory  VehicleStatusHistory[]
+  driverVehicles DriverVehicle[]
+
+  @@index([isActive])
+  @@map("vehicles")
+}
+
+model VehicleStatusHistory {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date       DateTime  @default(now())
+  status     CarStatus
+  returnDate DateTime? @map("return_date") @db.Date
+
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId String  @db.Uuid
+
+  @@map("vehicle_status_history")
+}
+
+model DriverVehicle {
+  id   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date DateTime @default(now())
+
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId String  @db.Uuid
+
+  driver   Driver @relation(fields: [driverId], references: [id])
+  driverId String @db.Uuid
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@map("driver_vehicles")
+}
