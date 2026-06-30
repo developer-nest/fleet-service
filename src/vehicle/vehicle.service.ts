@@ -17,19 +17,22 @@ export class VehicleService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: Prisma.VehicleUncheckedCreateInput): Promise<Vehicle> {
-    const { currentSituation, ...rest } = data;
+    const { currentSituation, statusHistory, ...rest } = data;
+    const initialStatus = currentSituation ?? CarStatus.AVAILABLE;
+    this.handleDetectionNotStatus(initialStatus, statusHistory);
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         const vehicle = await tx.vehicle.create({
           data: {
             ...rest,
-            currentSituation: currentSituation ?? CarStatus.AVAILABLE,
+            currentSituation: initialStatus,
           },
         });
 
         await tx.vehicleStatusHistory.create({
           data: {
-            status: currentSituation ?? CarStatus.AVAILABLE,
+            status: initialStatus,
             vehicleId: vehicle.id,
           },
         });
@@ -102,7 +105,12 @@ export class VehicleService {
     data: Prisma.VehicleUncheckedUpdateInput,
   ): Promise<Vehicle> {
     await this.findOne(where);
-    const { currentSituation, ...rest } = data as any;
+    const { currentSituation, statusHistory, ...rest } = data as any;
+
+    if (currentSituation) {
+      this.handleDetectionNotStatus(currentSituation, statusHistory);
+    }
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         const vehicle = await tx.vehicle.update({
@@ -136,6 +144,22 @@ export class VehicleService {
       where: { id: where.id },
       data: { isActive: false }, // solo cambia isActive, sin tocar situación ni historial
     });
+  }
+
+  private handleDetectionNotStatus(
+    initialStatus: CarStatus | undefined,
+    statusHistory: any,
+  ) {
+    // Si crean con VACATION o INTERIOR sin returnDate, debe fallar también
+    const requiresReturnDate = initialStatus === CarStatus.INTERIOR;
+
+    if (requiresReturnDate && !statusHistory) {
+      // si no hay forma de pasar returnDate en create, podrías no permitir crear directamente con estas situaciones
+      throw new RpcException({
+        message: `No se puede crear un vehiculo con situación ${initialStatus} sin fecha de regreso`,
+        code: status.INVALID_ARGUMENT,
+      });
+    }
   }
 
   private handlePrismaError(error: any, numCar?: string): never {
