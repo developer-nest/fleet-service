@@ -68,7 +68,7 @@ message Driver {
   bool isActive = 5;
   string category  = 6;
   string fixedVehicleId = 7;
-  string currentSituation = 8;
+  DriverSituation currentSituation = 8;
 }
 
 message DriverDetail {
@@ -80,7 +80,7 @@ message DriverDetail {
   string category  = 6;
   string fixedVehicleId = 7;   // nullable
   Vehicle fixedVehicle   = 8;  // nullable: populated si tiene carro fijo
-  string currentSituation = 9;
+  DriverSituation currentSituation = 9;
   repeated DriverStatusHistory statusHistory = 10;
 }
 
@@ -91,7 +91,7 @@ message CreateDriverDto {
   bool isActive = 4;
   string category  = 6;
   string fixedVehicleId = 7;
-  string currentSituation = 8;
+  DriverSituation currentSituation = 8;
   }
 
 message UpdateDriverDto {  
@@ -102,7 +102,7 @@ message UpdateDriverDto {
   bool isActive = 5;
   string category  = 6;
   string fixedVehicleId = 7;
-  string currentSituation = 8;
+  DriverSituation currentSituation = 8;
 }
 
 message DriverList {
@@ -124,9 +124,6 @@ service VehicleService {
 }
 
 
-
-
-
 message Vehicle {
   string id = 1;
   string numCar = 2;
@@ -134,7 +131,7 @@ message Vehicle {
   float currentMileage = 4;  
   bool isActive = 5;
   string brand = 6;
-  string currentSituation = 7;
+  CarStatus currentSituation = 7;
 }
 
 message VehicleDetail {
@@ -145,7 +142,7 @@ message VehicleDetail {
   float  currentMileage = 5;
   bool   isActive       = 6;
   Driver fixedDriver    = 7;  // nullable: populated si tiene chofer fijo
-  string currentSituation = 8;
+  CarStatus currentSituation = 8;
   repeated VehicleStatusHistory statusHistory = 9;
 }
 
@@ -155,7 +152,7 @@ message CreateVehicleDto {
   float currentMileage = 3;
   bool isActive = 4;
   string brand = 5;
-  string currentSituation = 6;
+  CarStatus currentSituation = 6;
 }
 
 message UpdateVehicleDto {  
@@ -165,7 +162,7 @@ message UpdateVehicleDto {
   float currentMileage = 4;
   bool isActive = 5;
   string brand = 6;
-  string currentSituation = 7;
+  CarStatus currentSituation = 7;
   
 }
 

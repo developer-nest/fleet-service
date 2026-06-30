@@ -17,7 +17,26 @@ export class DriverService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: Prisma.DriverUncheckedCreateInput): Promise<Driver> {
-    const { fixedVehicleId, currentSituation, ...rest } = data;
+    const { fixedVehicleId, currentSituation, statusHistory, ...rest } = data;
+
+    const initialStatus = currentSituation ?? DriverSituation.AVAILABLE;
+
+    this.handleDetectionNotStatus(initialStatus, statusHistory);
+
+    // const initialStatus = currentSituation ?? DriverSituation.AVAILABLE;
+
+    // // Si crean con VACATION o INTERIOR sin returnDate, debe fallar también
+    // const requiresReturnDate =
+    //   initialStatus === DriverSituation.VACATION ||
+    //   initialStatus === DriverSituation.INTERIOR;
+
+    // if (requiresReturnDate && !data.statusHistory) {
+    //   // si no hay forma de pasar returnDate en create, podrías no permitir crear directamente con estas situaciones
+    //   throw new RpcException({
+    //     message: `No se puede crear un conductor con situación ${initialStatus} sin fecha de regreso`,
+    //     code: status.INVALID_ARGUMENT,
+    //   });
+    // }
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -25,7 +44,7 @@ export class DriverService {
         const driver = await tx.driver.create({
           data: {
             ...rest,
-            currentSituation: currentSituation ?? DriverSituation.AVAILABLE,
+            currentSituation: initialStatus,
             ...(fixedVehicleId && {
               fixedVehicleId,
             }),
@@ -34,12 +53,10 @@ export class DriverService {
 
         await tx.driverStatusHistory.create({
           data: {
-            status: currentSituation ?? DriverSituation.AVAILABLE,
+            status: initialStatus,
             driverId: driver.id,
           },
         });
-
-        console.log(driver);
 
         return driver;
       });
@@ -131,7 +148,12 @@ export class DriverService {
     data: Prisma.DriverUncheckedUpdateInput,
   ): Promise<Driver> {
     await this.findOne(where);
-    const { fixedVehicleId, currentSituation, ...rest } = data as any;
+    const { fixedVehicleId, currentSituation, statusHistory, ...rest } =
+      data as any;
+
+    if (currentSituation) {
+      this.handleDetectionNotStatus(currentSituation, statusHistory);
+    }
     try {
       return await this.prisma.$transaction(async (tx) => {
         const driver = await tx.driver.update({
@@ -184,6 +206,24 @@ export class DriverService {
       where: { id: where.id },
       data: { isActive: false },
     });
+  }
+
+  private handleDetectionNotStatus(
+    initialStatus: DriverSituation | undefined,
+    statusHistory: any,
+  ) {
+    // Si crean con VACATION o INTERIOR sin returnDate, debe fallar también
+    const requiresReturnDate =
+      initialStatus === DriverSituation.VACATION ||
+      initialStatus === DriverSituation.INTERIOR;
+
+    if (requiresReturnDate && !statusHistory) {
+      // si no hay forma de pasar returnDate en create, podrías no permitir crear directamente con estas situaciones
+      throw new RpcException({
+        message: `No se puede crear un conductor con situación ${initialStatus} sin fecha de regreso`,
+        code: status.INVALID_ARGUMENT,
+      });
+    }
   }
 
   private handlePrismaError(

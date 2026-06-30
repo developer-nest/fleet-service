@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
-import { Prisma } from 'src/generated/prisma/client';
+import { DriverSituation, Prisma } from 'src/generated/prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { DriverStatusHistory } from 'src/generated/prisma/client';
 import { RpcException } from '@nestjs/microservices';
-import { status } from '@grpc/grpc-js';
+import { status as statusError } from '@grpc/grpc-js';
 import {
   DriverStatusFilter,
   DriverStatusHistoryList,
@@ -18,19 +18,30 @@ export class DriverStatusHistoryService {
   async create(
     data: Prisma.DriverStatusHistoryUncheckedCreateInput,
   ): Promise<DriverStatusHistory> {
+    const { status, returnDate, driverId } = data;
+    const requiresReturnDate =
+      status === DriverSituation.VACATION ||
+      status === DriverSituation.INTERIOR;
+
+    if (requiresReturnDate && !returnDate) {
+      throw new RpcException({
+        message: `La situación ${status} requiere fecha de regreso`,
+        code: statusError.INVALID_ARGUMENT,
+      });
+    }
     try {
       const [statusHistory] = await this.prisma.$transaction([
         this.prisma.driverStatusHistory.create({
           data: {
-            status: data.status,
-            returnDate: data.returnDate,
-            driverId: data.driverId,
+            status,
+            returnDate: requiresReturnDate ? returnDate : null,
+            driverId,
           },
         }),
         // 2. Actualizar la situación actual en Driver
         this.prisma.driver.update({
           where: { id: data.driverId },
-          data: { currentSituation: data.status },
+          data: { currentSituation: status },
         }),
       ]);
 
@@ -102,7 +113,7 @@ export class DriverStatusHistoryService {
       if (!statusHistory) {
         throw new RpcException({
           message: `StatusHistory with id ${where.id} not found`,
-          code: status.NOT_FOUND,
+          code: statusError.NOT_FOUND,
         });
       }
       return statusHistory;
@@ -117,25 +128,25 @@ export class DriverStatusHistoryService {
       if (error.code === 'P2002') {
         throw new RpcException({
           message: `Violación de restricción única en historial de conductor`,
-          code: status.ALREADY_EXISTS,
+          code: statusError.ALREADY_EXISTS,
         });
       }
       if (error.code === 'P2025') {
         throw new RpcException({
           message: `Conductor no encontrado`, // ← correcto para este service
-          code: status.NOT_FOUND,
+          code: statusError.NOT_FOUND,
         });
       }
       if (error.code === 'P2003') {
         throw new RpcException({
           message: `Error de integridad referencial`,
-          code: status.FAILED_PRECONDITION,
+          code: statusError.FAILED_PRECONDITION,
         });
       }
     }
     throw new RpcException({
       message: 'Error interno del servidor',
-      code: status.INTERNAL,
+      code: statusError.INTERNAL,
     });
   }
 

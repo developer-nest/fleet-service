@@ -31,7 +31,7 @@ export interface CreateDriver {
   isActive: boolean;
   category: string;
   fixedVehicleId?: string;
-  currentSituation?: DriverSituation;
+  //currentSituation?: DriverSituation;
 }
 
 export interface UpdateDriver extends Partial<CreateDriver> {
