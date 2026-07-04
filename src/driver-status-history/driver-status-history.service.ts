@@ -8,16 +8,17 @@ import { DriverStatusHistory } from 'src/generated/prisma/client';
 import { RpcException } from '@nestjs/microservices';
 import { status as statusError } from '@grpc/grpc-js';
 import {
+  CreateDriverStatus,
   DriverStatusFilter,
   DriverStatusHistoryList,
+  DriverStatusHistoryListPrisma,
 } from './interfaces/driver-status-history.interface';
+import { toDateOrNull } from 'src/common';
 
 @Injectable()
 export class DriverStatusHistoryService {
   constructor(private prisma: PrismaService) {}
-  async create(
-    data: Prisma.DriverStatusHistoryUncheckedCreateInput,
-  ): Promise<DriverStatusHistory> {
+  async create(data: CreateDriverStatus): Promise<DriverStatusHistory> {
     const { status, returnDate, driverId } = data;
     const requiresReturnDate =
       status === DriverSituation.VACATION ||
@@ -29,12 +30,16 @@ export class DriverStatusHistoryService {
         code: statusError.INVALID_ARGUMENT,
       });
     }
+
+    const parsedReturnDate = requiresReturnDate
+      ? toDateOrNull(returnDate)
+      : null;
     try {
       const [statusHistory] = await this.prisma.$transaction([
         this.prisma.driverStatusHistory.create({
           data: {
             status,
-            returnDate: requiresReturnDate ? returnDate : null,
+            returnDate: parsedReturnDate,
             driverId,
           },
         }),
@@ -54,7 +59,7 @@ export class DriverStatusHistoryService {
 
   async findAll(
     driverStatusFilter: DriverStatusFilter,
-  ): Promise<DriverStatusHistoryList> {
+  ): Promise<DriverStatusHistoryListPrisma> {
     try {
       const {
         limit = 10,
@@ -64,18 +69,17 @@ export class DriverStatusHistoryService {
         status,
       } = driverStatusFilter;
 
-      const isValidDate = !isNaN(Date.parse(date as string));
+      const parsedDate = toDateOrNull(date);
 
       const where: Prisma.DriverStatusHistoryWhereInput = {
         ...(driverId && { driverId }),
         ...(status && { status }),
-        ...(date &&
-          isValidDate && {
-            date: {
-              gte: new Date(`${date}T00:00:00.000Z`),
-              lt: new Date(`${date}T23:59:59.999Z`),
-            },
-          }),
+        ...(parsedDate && {
+          date: {
+            gte: parsedDate,
+            lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000), // +1 día
+          },
+        }),
       };
 
       const [driverStatus, total] = await Promise.all([

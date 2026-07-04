@@ -1,14 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import { DriverStatusHistoryService } from './driver-status-history.service';
-import { ById } from 'src/common';
+import { ById, toIsoStringOrEmpty } from 'src/common';
 import {
   CreateDriverStatus,
   DriverStatusFilter,
   DriverStatusHistoryList,
+  DriverStatusHistoryResponse,
 } from './interfaces/driver-status-history.interface';
-import { DriverStatusHistory } from 'src/generated/prisma/client';
 
 @Controller()
 export class DriverStatusHistoryController {
@@ -17,20 +18,45 @@ export class DriverStatusHistoryController {
   ) {}
 
   @GrpcMethod('DriverStatusService')
-  create(data: CreateDriverStatus): Promise<DriverStatusHistory> {
-    return this.driverStatusHistoryService.create(data);
+  async create(data: CreateDriverStatus): Promise<DriverStatusHistoryResponse> {
+    const result = await this.driverStatusHistoryService.create(data);
+    return this.toResponse(result);
   }
 
   @GrpcMethod('DriverStatusService')
-  findAll(
+  async findAll(
     driverStatusFilter: DriverStatusFilter,
   ): Promise<DriverStatusHistoryList> {
-    return this.driverStatusHistoryService.findAll(driverStatusFilter);
+    const result =
+      await this.driverStatusHistoryService.findAll(driverStatusFilter);
+    return {
+      ...result,
+      items: result.items.map((item) => this.toResponse(item)), // 👈 conversión real
+    };
   }
 
   @GrpcMethod('DriverStatusService')
-  async findOne(data: ById): Promise<DriverStatusHistory | null> {
-    return await this.driverStatusHistoryService.findOne({ id: data.id });
+  async findOne(data: ById): Promise<DriverStatusHistoryResponse | null> {
+    const result = await this.driverStatusHistoryService.findOne({
+      id: data.id,
+    });
+    return result ? this.toResponse(result) : null;
+  }
+
+  private toResponse(entity: {
+    id: string;
+    date: Date;
+    status: string;
+    returnDate: Date | null;
+    driverId: string;
+  }): DriverStatusHistoryResponse {
+    return {
+      id: entity.id,
+      date: toIsoStringOrEmpty(entity.date),
+      status: entity.status as any,
+      returnDate: toIsoStringOrEmpty(entity.returnDate),
+      driverId: entity.driverId,
+    };
   }
 
   // @MessagePattern('updateDriverStatusHistory')

@@ -1,35 +1,52 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
-import { status } from '@grpc/grpc-js';
+import { status as statusError } from '@grpc/grpc-js';
 import { Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
-import { Prisma, VehicleStatusHistory } from 'src/generated/prisma/client';
+import {
+  CarStatus,
+  Prisma,
+  VehicleStatusHistory,
+} from 'src/generated/prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import {
+  CreateVehicleStatus,
   VehicleStatusFilter,
   VehicleStatusHistoryList,
+  VehicleStatusHistoryListPrisma,
 } from './interfaces/vehicle-status-history.interface';
+import { toDateOrNull } from 'src/common';
 
 @Injectable()
 export class VehicleStatusHistoryService {
   constructor(private prisma: PrismaService) {}
-  async create(
-    data: Prisma.VehicleStatusHistoryUncheckedCreateInput,
-  ): Promise<VehicleStatusHistory> {
+  async create(data: CreateVehicleStatus): Promise<VehicleStatusHistory> {
+    const { status, returnDate, vehicleId } = data;
+    const requiresReturnDate = status === CarStatus.INTERIOR;
+    if (requiresReturnDate && !returnDate) {
+      throw new RpcException({
+        message: `La situación ${status} requiere fecha de regreso`,
+        code: statusError.INVALID_ARGUMENT,
+      });
+    }
+
+    const parsedReturnDate = requiresReturnDate
+      ? toDateOrNull(returnDate)
+      : null;
     try {
       const [statusHistory] = await this.prisma.$transaction([
         this.prisma.vehicleStatusHistory.create({
           data: {
-            status: data.status,
-            returnDate: data.returnDate,
-            vehicleId: data.vehicleId,
+            status,
+            returnDate: parsedReturnDate,
+            vehicleId,
           },
         }),
         // 2. Actualizar la situación actual en Driver
         this.prisma.vehicle.update({
-          where: { id: data.vehicleId },
-          data: { currentSituation: data.status },
+          where: { id: vehicleId },
+          data: { currentSituation: status },
         }),
       ]);
 
@@ -42,7 +59,7 @@ export class VehicleStatusHistoryService {
 
   async findAll(
     vehicleStatusFilter: VehicleStatusFilter,
-  ): Promise<VehicleStatusHistoryList> {
+  ): Promise<VehicleStatusHistoryListPrisma> {
     try {
       const {
         limit = 10,
@@ -52,18 +69,16 @@ export class VehicleStatusHistoryService {
         status,
       } = vehicleStatusFilter;
 
-      const isValidDate = !isNaN(Date.parse(date as string));
-
+      const parsedDate = toDateOrNull(date);
       const where: Prisma.VehicleStatusHistoryWhereInput = {
         ...(vehicleId && { vehicleId }),
         ...(status && { status }),
-        ...(date &&
-          isValidDate && {
-            date: {
-              gte: new Date(`${date}T00:00:00.000Z`),
-              lt: new Date(`${date}T23:59:59.999Z`),
-            },
-          }),
+        ...(parsedDate && {
+          date: {
+            gte: parsedDate,
+            lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000), // +1 día
+          },
+        }),
       };
 
       const [vehicleStatus, total] = await Promise.all([
@@ -98,7 +113,7 @@ export class VehicleStatusHistoryService {
       if (!statusHistory) {
         throw new RpcException({
           message: `StatusHistory with id ${where.id} not found`,
-          code: status.NOT_FOUND,
+          code: statusError.NOT_FOUND,
         });
       }
       return statusHistory;
@@ -113,25 +128,25 @@ export class VehicleStatusHistoryService {
       if (error.code === 'P2002') {
         throw new RpcException({
           message: `Violación de restricción única en historial de conductor`,
-          code: status.ALREADY_EXISTS,
+          code: statusError.ALREADY_EXISTS,
         });
       }
       if (error.code === 'P2025') {
         throw new RpcException({
           message: `Conductor no encontrado`, // ← correcto para este service
-          code: status.NOT_FOUND,
+          code: statusError.NOT_FOUND,
         });
       }
       if (error.code === 'P2003') {
         throw new RpcException({
           message: `Error de integridad referencial`,
-          code: status.FAILED_PRECONDITION,
+          code: statusError.FAILED_PRECONDITION,
         });
       }
     }
     throw new RpcException({
       message: 'Error interno del servidor',
-      code: status.INTERNAL,
+      code: statusError.INTERNAL,
     });
   }
 

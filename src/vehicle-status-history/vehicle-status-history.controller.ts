@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
@@ -6,9 +7,9 @@ import {
   CreateVehicleStatus,
   VehicleStatusFilter,
   VehicleStatusHistoryList,
+  VehicleStatusHistoryResponse,
 } from './interfaces/vehicle-status-history.interface';
-import { VehicleStatusHistory } from 'src/generated/prisma/client';
-import { ById } from 'src/common';
+import { ById, toIsoStringOrEmpty } from 'src/common';
 
 @Controller()
 export class VehicleStatusHistoryController {
@@ -17,20 +18,47 @@ export class VehicleStatusHistoryController {
   ) {}
 
   @GrpcMethod('VehicleStatusService')
-  create(data: CreateVehicleStatus): Promise<VehicleStatusHistory> {
-    return this.vehicleStatusHistoryService.create(data);
+  async create(
+    data: CreateVehicleStatus,
+  ): Promise<VehicleStatusHistoryResponse> {
+    const result = await this.vehicleStatusHistoryService.create(data);
+    return this.toResponse(result);
   }
 
   @GrpcMethod('VehicleStatusService')
-  findAll(
+  async findAll(
     vehicleStatusFilter: VehicleStatusFilter,
   ): Promise<VehicleStatusHistoryList> {
-    return this.vehicleStatusHistoryService.findAll(vehicleStatusFilter);
+    const result =
+      await this.vehicleStatusHistoryService.findAll(vehicleStatusFilter);
+    return {
+      ...result,
+      items: result.items.map((item) => this.toResponse(item)), // 👈 conversión real
+    };
   }
 
   @GrpcMethod('VehicleStatusService')
-  findOne(data: ById): Promise<VehicleStatusHistory | null> {
-    return this.vehicleStatusHistoryService.findOne({ id: data.id });
+  async findOne(data: ById): Promise<VehicleStatusHistoryResponse | null> {
+    const result = await this.vehicleStatusHistoryService.findOne({
+      id: data.id,
+    });
+    return result ? this.toResponse(result) : null;
+  }
+
+  private toResponse(entity: {
+    id: string;
+    date: Date;
+    status: string;
+    returnDate: Date | null;
+    vehicleId: string;
+  }): VehicleStatusHistoryResponse {
+    return {
+      id: entity.id,
+      date: toIsoStringOrEmpty(entity.date),
+      status: entity.status as any,
+      returnDate: toIsoStringOrEmpty(entity.returnDate),
+      vehicleId: entity.vehicleId,
+    };
   }
 
   // @MessagePattern('updateVehicleStatusHistory')

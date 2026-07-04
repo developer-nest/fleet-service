@@ -1,6 +1,9 @@
 /* eslint-disable prettier/prettier */
 import { Pagination } from 'src/common';
-import { Vehicle } from 'src/generated/prisma/client';
+import {
+  Vehicle,
+  VehicleStatusHistory as PrismaVehicleStatusHistory,
+} from 'src/generated/prisma/client';
 import { CarStatus } from 'src/generated/prisma/enums';
 
 export interface VehicleStatusHistory {
@@ -24,8 +27,25 @@ export interface VehicleStatusFilter extends Pagination {
   vehicleId?: string;
 }
 
+export interface VehicleStatusHistoryResponse {
+  id: string;
+  date: string;
+  vehicleId: string;
+  status: CarStatus;
+  returnDate?: string;
+  vehicle?: Vehicle | null;
+}
+
 export interface VehicleStatusHistoryList {
-  items: VehicleStatusHistory[];
+  items: VehicleStatusHistoryResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface VehicleStatusHistoryListPrisma {
+  items: PrismaVehicleStatusHistory[];
   total: number;
   page: number;
   limit: number;

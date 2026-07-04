@@ -2,6 +2,7 @@
 import { Pagination } from 'src/common';
 import { Driver } from 'src/generated/prisma/client';
 import { DriverSituation } from 'src/generated/prisma/enums';
+import { DriverStatusHistory as PrismaDriverStatusHistory } from 'src/generated/prisma/client';
 
 export interface DriverStatusHistory {
   id: string | null;
@@ -25,7 +26,24 @@ export interface DriverStatusFilter extends Pagination {
 }
 
 export interface DriverStatusHistoryList {
-  items: DriverStatusHistory[];
+  items: DriverStatusHistoryResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface DriverStatusHistoryResponse {
+  id: string;
+  date: string; // 👈 string, como pide el proto
+  driverId: string;
+  status: DriverSituation;
+  returnDate?: string; // 👈 string
+  driver?: Driver | null;
+}
+
+export interface DriverStatusHistoryListPrisma {
+  items: PrismaDriverStatusHistory[];
   total: number;
   page: number;
   limit: number;
