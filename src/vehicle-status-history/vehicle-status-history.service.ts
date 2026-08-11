@@ -16,7 +16,7 @@ import {
   VehicleStatusHistoryList,
   VehicleStatusHistoryListPrisma,
 } from './interfaces/vehicle-status-history.interface';
-import { toDateOrNull } from 'src/common';
+import { ById, toDateOrNull } from 'src/common';
 
 @Injectable()
 export class VehicleStatusHistoryService {
@@ -104,15 +104,15 @@ export class VehicleStatusHistoryService {
     }
   }
 
-  async findOne(where: Prisma.VehicleStatusHistoryWhereUniqueInput) {
+  async findOne(data: ById) {
     try {
       const statusHistory = await this.prisma.vehicleStatusHistory.findUnique({
-        where,
+        where: { id: data.id },
       });
 
       if (!statusHistory) {
         throw new RpcException({
-          message: `StatusHistory with id ${where.id} not found`,
+          message: `StatusHistory with id ${data.id} not found`,
           code: statusError.NOT_FOUND,
         });
       }
@@ -149,15 +149,4 @@ export class VehicleStatusHistoryService {
       code: statusError.INTERNAL,
     });
   }
-
-  // update(
-  //   id: number,
-  //   updateVehicleStatusHistoryDto: UpdateVehicleStatusHistoryDto,
-  // ) {
-  //   return `This action updates a #${id} vehicleStatusHistory`;
-  // }
-
-  // remove(id: number) {
-  //   return `This action removes a #${id} vehicleStatusHistory`;
-  // }
 }

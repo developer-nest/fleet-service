@@ -3,13 +3,14 @@
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import { DriverStatusHistoryService } from './driver-status-history.service';
-import { ById, toIsoStringOrEmpty } from 'src/common';
+import { ById } from 'src/common';
 import {
   CreateDriverStatus,
   DriverStatusFilter,
   DriverStatusHistoryList,
   DriverStatusHistoryResponse,
 } from './interfaces/driver-status-history.interface';
+import { toDriverStatusHistoryResponse } from './mappers/driver-status-history.mapper';
 
 @Controller()
 export class DriverStatusHistoryController {
@@ -20,7 +21,7 @@ export class DriverStatusHistoryController {
   @GrpcMethod('DriverStatusService')
   async create(data: CreateDriverStatus): Promise<DriverStatusHistoryResponse> {
     const result = await this.driverStatusHistoryService.create(data);
-    return this.toResponse(result);
+    return toDriverStatusHistoryResponse(result);
   }
 
   @GrpcMethod('DriverStatusService')
@@ -31,41 +32,13 @@ export class DriverStatusHistoryController {
       await this.driverStatusHistoryService.findAll(driverStatusFilter);
     return {
       ...result,
-      items: result.items.map((item) => this.toResponse(item)), // 👈 conversión real
+      items: result.items.map(toDriverStatusHistoryResponse), // 👈 conversión real
     };
   }
 
   @GrpcMethod('DriverStatusService')
-  async findOne(data: ById): Promise<DriverStatusHistoryResponse | null> {
-    const result = await this.driverStatusHistoryService.findOne({
-      id: data.id,
-    });
-    return result ? this.toResponse(result) : null;
+  async findOne(id: ById): Promise<DriverStatusHistoryResponse | null> {
+    const result = await this.driverStatusHistoryService.findOne(id);
+    return result ? toDriverStatusHistoryResponse(result) : null;
   }
-
-  private toResponse(entity: {
-    id: string;
-    date: Date;
-    status: string;
-    returnDate: Date | null;
-    driverId: string;
-  }): DriverStatusHistoryResponse {
-    return {
-      id: entity.id,
-      date: toIsoStringOrEmpty(entity.date),
-      status: entity.status as any,
-      returnDate: toIsoStringOrEmpty(entity.returnDate),
-      driverId: entity.driverId,
-    };
-  }
-
-  // @MessagePattern('updateDriverStatusHistory')
-  // update(@Payload() updateDriverStatusHistoryDto: UpdateDriverStatusHistoryDto) {
-  //   return this.driverStatusHistoryService.update(updateDriverStatusHistoryDto.id, updateDriverStatusHistoryDto);
-  // }
-
-  // @MessagePattern('removeDriverStatusHistory')
-  // remove(@Payload() id: number) {
-  //   return this.driverStatusHistoryService.remove(id);
-  // }
 }

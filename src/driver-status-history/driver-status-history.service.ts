@@ -10,10 +10,9 @@ import { status as statusError } from '@grpc/grpc-js';
 import {
   CreateDriverStatus,
   DriverStatusFilter,
-  DriverStatusHistoryList,
   DriverStatusHistoryListPrisma,
 } from './interfaces/driver-status-history.interface';
-import { toDateOrNull } from 'src/common';
+import { buildDateRangeFilter, ById, toDateOrNull } from 'src/common';
 
 @Injectable()
 export class DriverStatusHistoryService {
@@ -65,21 +64,18 @@ export class DriverStatusHistoryService {
         limit = 10,
         page = 1,
         date,
+        dateFrom,
+        dateTo,
         driverId,
         status,
       } = driverStatusFilter;
 
-      const parsedDate = toDateOrNull(date);
+      const dateWhere = buildDateRangeFilter(date, dateFrom, dateTo);
 
       const where: Prisma.DriverStatusHistoryWhereInput = {
         ...(driverId && { driverId }),
         ...(status && { status }),
-        ...(parsedDate && {
-          date: {
-            gte: parsedDate,
-            lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000), // +1 día
-          },
-        }),
+        ...(dateWhere && { date: dateWhere }),
       };
 
       const [driverStatus, total] = await Promise.all([
@@ -89,10 +85,9 @@ export class DriverStatusHistoryService {
           take: limit,
           orderBy: { date: 'desc' },
         }),
-        this.prisma.driverStatusHistory.count({
-          where,
-        }),
+        this.prisma.driverStatusHistory.count({ where }),
       ]);
+
       return {
         items: driverStatus,
         total,
@@ -101,14 +96,15 @@ export class DriverStatusHistoryService {
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
+      if (error instanceof RpcException) throw error;
       this.handlePrismaError(error);
     }
   }
 
-  async findOne(where: Prisma.DriverStatusHistoryWhereUniqueInput) {
+  async findOne(data: ById): Promise<DriverStatusHistory> {
     try {
       const statusHistory = await this.prisma.driverStatusHistory.findUnique({
-        where,
+        where: { id: data.id },
         include: {
           driver: true,
         },
@@ -116,7 +112,7 @@ export class DriverStatusHistoryService {
 
       if (!statusHistory) {
         throw new RpcException({
-          message: `StatusHistory with id ${where.id} not found`,
+          message: `StatusHistory with id ${data.id} not found`,
           code: statusError.NOT_FOUND,
         });
       }
@@ -153,12 +149,4 @@ export class DriverStatusHistoryService {
       code: statusError.INTERNAL,
     });
   }
-
-  // update(id: number, updateDriverStatusHistoryDto: UpdateDriverStatusHistoryDto) {
-  //   return `This action updates a #${id} driverStatusHistory`;
-  // }
-
-  // remove(id: number) {
-  //   return `This action removes a #${id} driverStatusHistory`;
-  // }
 }

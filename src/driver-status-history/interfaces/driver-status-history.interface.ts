@@ -5,12 +5,12 @@ import { DriverSituation } from 'src/generated/prisma/enums';
 import { DriverStatusHistory as PrismaDriverStatusHistory } from 'src/generated/prisma/client';
 
 export interface DriverStatusHistory {
-  id: string | null;
-  date: Date | null;
-  driverId: string | null;
-  status: DriverSituation | null;
-  returnDate?: Date | null;
-  driver?: Driver | null;
+  id: string;
+  date: Date;
+  driverId: string;
+  status: DriverSituation;
+  returnDate?: Date;
+  driver?: Driver;
 }
 
 export interface CreateDriverStatus {
@@ -21,7 +21,9 @@ export interface CreateDriverStatus {
 
 export interface DriverStatusFilter extends Pagination {
   status?: DriverSituation;
-  date?: string;
+  date?: string; // fecha exacta (para "dime la situación de este día")
+  dateFrom?: string; // 👈 nuevo: inicio del rango (para "dame el historial")
+  dateTo?: string; // 👈 nuevo: fin del rango
   driverId?: string;
 }
 
@@ -39,7 +41,7 @@ export interface DriverStatusHistoryResponse {
   driverId: string;
   status: DriverSituation;
   returnDate?: string; // 👈 string
-  driver?: Driver | null;
+  driver?: Driver;
 }
 
 export interface DriverStatusHistoryListPrisma {
