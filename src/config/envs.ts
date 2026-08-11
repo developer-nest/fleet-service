@@ -5,11 +5,13 @@ import 'dotenv/config';
 interface EnvVars {
   PORT: number;
   DATABASE_URL: string;
+  FLEET_MICROSERVICE_HOST: string;
 }
 
 export const envsSchema = Joi.object({
   PORT: Joi.number().required(),
   DATABASE_URL: Joi.string().required(),
+  FLEET_MICROSERVICE_HOST: Joi.string().required(),
 }).unknown(true);
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -24,5 +26,6 @@ const envVars: EnvVars = value;
 
 export const envs = {
   port: envVars.PORT,
+  fleetMicroserviceHost: envVars.FLEET_MICROSERVICE_HOST,
   databaseUrl: envVars.DATABASE_URL,
 };

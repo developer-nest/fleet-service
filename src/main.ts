@@ -16,7 +16,7 @@ async function bootstrap() {
       options: {
         package: 'fleetService',
         protoPath: join(process.cwd(), 'src/fleet-service.proto'),
-        url: `localhost:${envs.port}`,
+        url: `${envs.fleetMicroserviceHost}:${envs.port}`,
         loader: {
           enums: String,
         },

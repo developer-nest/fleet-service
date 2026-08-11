@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 // src/common/date.utils.ts
 import { RpcException } from '@nestjs/microservices';
 import { status as statusError } from '@grpc/grpc-js';
@@ -63,4 +64,39 @@ export function toIsoStringOrEmpty(value?: Date | null): string {
  */
 export function toTimeDate(value: string): Date {
   return new Date(`1970-01-01T${value}`);
+}
+
+export function buildDateRangeFilter(
+  date?: string,
+  dateFrom?: string,
+  dateTo?: string,
+): { gte?: Date; lte?: Date; lt?: Date } | null {
+  if (dateFrom || dateTo) {
+    const parsedFrom = toDateOrNull(dateFrom);
+    const parsedTo = toDateOrNull(dateTo);
+
+    if (parsedFrom && parsedTo && parsedFrom > parsedTo) {
+      throw new RpcException({
+        message: `dateFrom (${dateFrom}) no puede ser posterior a dateTo (${dateTo})`,
+        code: statusError.INVALID_ARGUMENT,
+      });
+    }
+
+    return {
+      ...(parsedFrom && { gte: parsedFrom }),
+      ...(parsedTo && {
+        lte: new Date(parsedTo.getTime() + 24 * 60 * 60 * 1000),
+      }),
+    };
+  }
+
+  const parsedDate = toDateOrNull(date);
+  if (parsedDate) {
+    return {
+      gte: parsedDate,
+      lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000),
+    };
+  }
+
+  return null;
 }

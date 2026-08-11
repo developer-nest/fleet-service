@@ -81,7 +81,7 @@ message DriverDetail {
   string fixedVehicleId = 7;   // nullable
   Vehicle fixedVehicle   = 8;  // nullable: populated si tiene carro fijo
   DriverSituation currentSituation = 9;
-  repeated DriverStatusHistory statusHistory = 10;
+  
 }
 
 message CreateDriverDto {  
@@ -89,9 +89,9 @@ message CreateDriverDto {
   string address = 2;
   string idCard = 3;
   bool isActive = 4;
-  string category  = 6;
-  string fixedVehicleId = 7;
-  DriverSituation currentSituation = 8;
+  string category  = 5;
+  string fixedVehicleId = 6;
+  DriverSituation currentSituation = 7;
   }
 
 message UpdateDriverDto {  
@@ -121,6 +121,11 @@ service VehicleService {
   rpc FindOne (ById) returns (VehicleDetail) {}
   rpc Update (UpdateVehicleDto) returns (Vehicle) {}
   rpc Remove (ById) returns (Vehicle) {}
+  rpc FindAvailableByDate (AvailabilityFilter) returns (VehicleAvailabilityList) {} 
+}
+
+message VehicleAvailabilityList {
+  repeated Vehicle items = 1;
 }
 
 
@@ -143,7 +148,7 @@ message VehicleDetail {
   bool   isActive       = 6;
   Driver fixedDriver    = 7;  // nullable: populated si tiene chofer fijo
   CarStatus currentSituation = 8;
-  repeated VehicleStatusHistory statusHistory = 9;
+  
 }
 
 message CreateVehicleDto {  
@@ -173,6 +178,11 @@ message VehicleList {
   int32 limit = 4;
   int32 totalPages = 5;
 }
+
+message AvailabilityFilter {
+      string date = 1;
+}
+
 
 
 // ═══════════════════════════════════════════════
@@ -206,7 +216,9 @@ message DriverStatusFilter {
   int32           limit     = 2;
   string          driverId  = 3;  // opcional
   DriverSituation status    = 4;  // opcional
-  string          date      = 5;  // opcional: filtrar por fecha
+  string          date      = 5;  // opcional: fecha exacta
+  string          dateFrom  = 6;  // opcional: inicio de rango
+  string          dateTo    = 7;  // opcional: fin de rango
 }
 
 message DriverStatusHistoryList {
@@ -249,7 +261,9 @@ message VehicleStatusFilter {
   int32     limit     = 2;
   string    vehicleId = 3;  // opcional
   CarStatus status    = 4;  // opcional
-  string    date      = 5;  // opcional: filtrar por fecha
+  string    date      = 5;  // opcional: fecha exacta
+  string    dateFrom  = 6;  // opcional: inicio de rango
+  string    dateTo    = 7;  // opcional: fin de rango
 }
 
 message VehicleStatusHistoryList {
