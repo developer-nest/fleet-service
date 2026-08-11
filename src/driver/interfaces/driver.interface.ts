@@ -1,10 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { DriverSituation } from 'src/generated/prisma/enums';
 
-export interface DriverById {
-  id: string;
-}
-
 export interface Driver {
   id: string | null;
   fullName: string | null;
@@ -24,18 +20,25 @@ export interface DriverList {
   totalPages: number;
 }
 
-export interface CreateDriver {
+export interface CreateDriverDto {
   fullName: string;
   address: string;
   idCard: string;
   isActive: boolean;
   category: string;
   fixedVehicleId?: string;
-  //currentSituation?: DriverSituation;
+  currentSituation?: DriverSituation;
 }
 
-export interface UpdateDriver extends Partial<CreateDriver> {
+export interface UpdateDriver {
   id: string;
+  fullName?: string;
+  address?: string;
+  idCard?: string;
+  isActive?: boolean;
+  category?: string;
+  fixedVehicleId?: string;
+  currentSituation?: DriverSituation;
 }
 
 export interface Pagination {

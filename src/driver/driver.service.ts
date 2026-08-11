@@ -7,36 +7,23 @@ import { Driver, DriverSituation, Prisma } from 'src/generated/prisma/client';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import {
+  CreateDriverDto,
   DriverList,
   StatusDriverPagination,
+  UpdateDriver,
 } from './interfaces/driver.interface';
-import { captureRejectionSymbol } from 'node:events';
+import { ById } from 'src/common';
 
 @Injectable()
 export class DriverService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: Prisma.DriverUncheckedCreateInput): Promise<Driver> {
-    const { fixedVehicleId, currentSituation, statusHistory, ...rest } = data;
+  async create(data: CreateDriverDto): Promise<Driver> {
+    const { fixedVehicleId, currentSituation, ...rest } = data;
 
     const initialStatus = currentSituation ?? DriverSituation.AVAILABLE;
 
-    this.handleDetectionNotStatus(initialStatus, statusHistory);
-
-    // const initialStatus = currentSituation ?? DriverSituation.AVAILABLE;
-
-    // // Si crean con VACATION o INTERIOR sin returnDate, debe fallar también
-    // const requiresReturnDate =
-    //   initialStatus === DriverSituation.VACATION ||
-    //   initialStatus === DriverSituation.INTERIOR;
-
-    // if (requiresReturnDate && !data.statusHistory) {
-    //   // si no hay forma de pasar returnDate en create, podrías no permitir crear directamente con estas situaciones
-    //   throw new RpcException({
-    //     message: `No se puede crear un conductor con situación ${initialStatus} sin fecha de regreso`,
-    //     code: status.INVALID_ARGUMENT,
-    //   });
-    // }
+    this.handleDetectionNotStatus(initialStatus);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -63,7 +50,7 @@ export class DriverService {
     } catch (error) {
       console.log('P2002 meta:', JSON.stringify(error?.meta));
       if (error instanceof RpcException) throw error;
-      this.handlePrismaError(error, data.idCard, fixedVehicleId);
+      this.handlePrismaError(error, fixedVehicleId);
     }
   }
   //mejorar este endpoint
@@ -101,74 +88,46 @@ export class DriverService {
     }
   }
 
-  async findOne(where: Prisma.DriverWhereUniqueInput): Promise<any> {
-    const driver = await this.prisma.driver.findUnique({
-      where,
-      include: {
-        fixedVehicle: true,
-        statusHistory: true,
-      },
-    });
-
-    if (!driver || !driver.isActive) {
-      throw new RpcException({
-        message: `Driver with id ${where.id} not found`,
-        code: status.NOT_FOUND,
+  async findOne(data: ById): Promise<Driver> {
+    try {
+      const driver = await this.prisma.driver.findUnique({
+        where: { id: data.id },
+        // include: {
+        //   fixedVehicle: true,
+        //   statusHistory: true,
+        // },
       });
+
+      if (!driver || !driver.isActive) {
+        throw new RpcException({
+          message: `Driver with id ${data.id} not found`,
+          code: status.NOT_FOUND,
+        });
+      }
+
+      return driver;
+    } catch (error) {
+      if (error instanceof RpcException) throw error;
+      this.handlePrismaError(error);
     }
-    return {
-      ...driver,
-      statusHistory: driver.statusHistory.map((h) => ({
-        id: h.id,
-        date: h.date.toISOString(),
-        status: h.status,
-        returnDate: h.returnDate?.toISOString() ?? '',
-        driverId: h.driverId,
-      })),
-    };
   }
 
-  // async findOne(where: Prisma.DriverWhereUniqueInput): Promise<Driver | null> {
-
-  //   console.log('--- ENTRANDO AL MÉTODO ---');
-  //   const driver = await this.prisma.driver.findFirst({
-  //     where: { ...where, isActive: true },
-  //   });
-
-  //   if (!driver)
-  //     throw new RpcException({
-  //       message: `Driver with id ${where.id} not found`,
-  //       statusCode: HttpStatus.BAD_REQUEST,
-  //     });
-  //   return driver;
-  // }
-
-  async update(
-    where: Prisma.DriverWhereUniqueInput,
-    data: Prisma.DriverUncheckedUpdateInput,
-  ): Promise<Driver> {
-    await this.findOne(where);
-    const { fixedVehicleId, currentSituation, statusHistory, ...rest } =
-      data as any;
+  async update(updateDriver: UpdateDriver): Promise<Driver> {
+    const { id, fixedVehicleId, currentSituation, ...rest } = updateDriver;
+    await this.findOne({ id });
 
     if (currentSituation) {
-      this.handleDetectionNotStatus(currentSituation, statusHistory);
+      this.handleDetectionNotStatus(currentSituation);
     }
     try {
       return await this.prisma.$transaction(async (tx) => {
         const driver = await tx.driver.update({
-          where: { id: where.id },
+          where: { id },
           data: {
             ...rest,
             ...(currentSituation && { currentSituation }),
-            //fixedVehicleId es un string con valor → conectar
-            ...(fixedVehicleId &&
-              fixedVehicleId !== 'null' && {
-                fixedVehicleId,
-              }),
-            // fixedVehicleId viene como 'null' string → desconectar
-            ...(fixedVehicleId === 'null' && {
-              fixedVehicle: null,
+            ...(fixedVehicleId !== undefined && {
+              fixedVehicleId: fixedVehicleId === 'null' ? null : fixedVehicleId,
             }),
           },
         });
@@ -185,39 +144,31 @@ export class DriverService {
       });
     } catch (error) {
       if (error instanceof RpcException) throw error;
-      this.handlePrismaError(
-        error,
-        data.idCard as string,
-        fixedVehicleId as string,
-      );
+      this.handlePrismaError(error, fixedVehicleId);
     }
   }
 
-  async remove(where: Prisma.DriverWhereUniqueInput): Promise<Driver> {
-    await this.findOne(where);
+  async remove(data: ById): Promise<Driver> {
+    await this.findOne({ id: data.id });
 
-    // if (!driver)
-    //   throw new RpcException({
-    //     message: `Driver with id ${where.id} not found`,
-    //     statusCode: HttpStatus.BAD_REQUEST,
-    //   });
-
-    return this.prisma.driver.update({
-      where: { id: where.id },
-      data: { isActive: false },
-    });
+    try {
+      return this.prisma.driver.update({
+        where: { id: data.id },
+        data: { isActive: false },
+      });
+    } catch (error) {
+      if (error instanceof RpcException) throw error;
+      this.handlePrismaError(error);
+    }
   }
 
-  private handleDetectionNotStatus(
-    initialStatus: DriverSituation | undefined,
-    statusHistory: any,
-  ) {
+  private handleDetectionNotStatus(initialStatus: DriverSituation | undefined) {
     // Si crean con VACATION o INTERIOR sin returnDate, debe fallar también
     const requiresReturnDate =
       initialStatus === DriverSituation.VACATION ||
       initialStatus === DriverSituation.INTERIOR;
 
-    if (requiresReturnDate && !statusHistory) {
+    if (requiresReturnDate) {
       // si no hay forma de pasar returnDate en create, podrías no permitir crear directamente con estas situaciones
       throw new RpcException({
         message: `No se puede crear un conductor con situación ${initialStatus} sin fecha de regreso`,
@@ -226,59 +177,25 @@ export class DriverService {
     }
   }
 
-  private handlePrismaError(
-    error: any,
-    idCard?: string,
-    fixedVehicleId?: string | null,
-  ): never {
+  private handlePrismaError(error: any, fixedVehicleId?: string): never {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {
-        const originalMessage: string =
-          (error.meta?.driverAdapterError as any)?.cause?.originalMessage ?? '';
-        const fields = Array.isArray(error.meta?.target)
-          ? (error.meta.target as string[]).join(',')
-          : '';
-
-        const isIdCard =
-          fields.includes('id_card') ||
-          fields.includes('idCard') ||
-          originalMessage.includes('id_card');
-
-        const isFixedVehicle =
-          fields.includes('fixed_vehicle_id') ||
-          fields.includes('fixedVehicleId') ||
-          originalMessage.includes('fixed_vehicle_id');
-
-        if (isIdCard) {
-          throw new RpcException({
-            message: `Ya existe un conductor con la cédula ${idCard}`,
-            code: status.ALREADY_EXISTS,
-          });
-        }
-
-        if (isFixedVehicle) {
-          throw new RpcException({
-            message: `El vehículo ${fixedVehicleId} ya tiene un conductor fijo asignado`,
-            code: status.ALREADY_EXISTS,
-          });
-        }
-
         throw new RpcException({
-          message: `Violación de restricción única`,
+          message: `Violación de restricción única en el conductor`, // también corregí "cgofer" (typo)
           code: status.ALREADY_EXISTS,
         });
       }
 
       if (error.code === 'P2025') {
         throw new RpcException({
-          message: `El vehículo con id ${fixedVehicleId} no existe`,
+          message: `El chofer no existe`,
           code: status.NOT_FOUND,
         });
       }
 
       if (error.code === 'P2003') {
         throw new RpcException({
-          message: `Error de integridad referencial`,
+          message: `El vehículo con id ${fixedVehicleId} no existe`, // 👈 corregido
           code: status.FAILED_PRECONDITION,
         });
       }

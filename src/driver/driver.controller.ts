@@ -6,30 +6,22 @@ import { GrpcMethod } from '@nestjs/microservices';
 import { DriverService } from './driver.service';
 import { Driver } from 'src/generated/prisma/client';
 import {
-  CreateDriver,
-  DriverById,
+  CreateDriverDto,
   DriverList,
   StatusDriverPagination,
   UpdateDriver,
 } from './interfaces/driver.interface';
+import { ById } from 'src/common';
 
 @Controller('')
 export class DriverController {
   constructor(private readonly driverService: DriverService) {}
 
-  // ─── CREATE ───────────────────────────────────
-  // Recibe: { fullName, address, idCard, category, dateIn, dateEnd?, isActive, fixedVehicleId? }
-  // Retorna: Driver
-  //@MessagePattern('createDriver')
   @GrpcMethod('DriverService')
-  async create(data: CreateDriver): Promise<Driver> {
+  async create(data: CreateDriverDto): Promise<Driver> {
     return this.driverService.create(data);
   }
 
-  //@MessagePattern('findAllDriver')
-  // ─── FIND ALL ─────────────────────────────────
-  // Recibe: { page, limit, isActive?, situation? }
-  // Retorna: DriverList { items, total, page, limit, totalPages }
   @GrpcMethod('DriverService')
   async findAll(
     statusDriverPagination: StatusDriverPagination,
@@ -37,12 +29,8 @@ export class DriverController {
     return this.driverService.findAll(statusDriverPagination);
   }
 
-  //@MessagePattern('findOneDriver')
   @GrpcMethod('DriverService')
-  // ─── FIND ONE ─────────────────────────────────
-  // Recibe: { id }
-  // Retorna: DriverDetail { ...driver, fixedVehicle? }
-  async findOne(data: DriverById): Promise<any> {
+  async findOne(data: ById): Promise<Driver> {
     return await this.driverService.findOne({ id: data.id });
   }
 
@@ -55,8 +43,8 @@ export class DriverController {
   // Retorna: Driver
   @GrpcMethod('DriverService')
   async update(updateDriver: UpdateDriver): Promise<Driver> {
-    const { id, ...data } = updateDriver;
-    return this.driverService.update({ id }, data);
+    //const { id, ...data } = updateDriver;
+    return this.driverService.update(updateDriver);
   }
 
   //@MessagePattern('removeDriver')
@@ -66,7 +54,7 @@ export class DriverController {
   // Recibe: { id }
   // Retorna: Driver con isActive = false
   @GrpcMethod('DriverService')
-  async remove(id: DriverById): Promise<Driver> {
+  async remove(id: ById): Promise<Driver> {
     return this.driverService.remove(id);
   }
 }

@@ -5,19 +5,23 @@ import { CarStatus } from 'src/generated/prisma/enums';
 
 //import { StatusVehicle } from 'src/generated/prisma/enums';
 
-export interface VehicleById {
+export interface Vehicle {
   id: string;
+  numCar: string;
+  seatCount: number;
+  currentMileage: number;
+  brand: string;
+  isActive: boolean;
+  currentSituation: CarStatus;
+  //status: StatusVehicle;
 }
 
-export interface Vehicle {
-  id: string | null;
-  numCar: string | null;
-  seatCount: number;
-  currentMileage: number | null;
-  brand: string | null;
-  isActive: boolean | null;
-  currentSituation: CarStatus | null;
-  //status: StatusVehicle;
+export interface AvailabilityFilter {
+  date: string;
+}
+
+export interface VehicleAvailabilityList {
+  items: Vehicle[];
 }
 
 export interface VehicleList {
@@ -38,8 +42,14 @@ export interface CreateVehicle {
   //status: StatusVehicle;
 }
 
-export interface UpdateVehicle extends Partial<CreateVehicle> {
+export interface UpdateVehicle {
   id: string;
+  numCar?: string;
+  seatCount?: number;
+  currentMileage?: number;
+  brand?: string;
+  isActive?: boolean;
+  currentSituation?: CarStatus;
 }
 
 export interface Pagination {

@@ -5,13 +5,16 @@ import { VehicleService } from './vehicle.service';
 import { GrpcMethod } from '@nestjs/microservices';
 
 import {
+  AvailabilityFilter,
   CreateVehicle,
   StatusVehiclePagination,
   UpdateVehicle,
-  VehicleById,
+  VehicleAvailabilityList,
   VehicleList,
 } from './interfaces/vehicle.interface';
 import { Vehicle } from 'src/generated/prisma/client';
+import { toVehicleResponse } from './mappers/vehicle.mapper';
+import { ById } from 'src/common';
 
 @Controller('')
 export class VehicleController {
@@ -29,22 +32,31 @@ export class VehicleController {
     return this.vehicleService.findAll(statusVehiclePagination);
   }
 
+  @GrpcMethod('VehicleService')
+  async findAvailableByDate(
+    data: AvailabilityFilter,
+  ): Promise<VehicleAvailabilityList> {
+    const items = await this.vehicleService.findAvailableByDate(data.date);
+    return {
+      items: items.map(toVehicleResponse), // usa tu mapper existente de Vehicle
+    };
+  }
+
   //@Get(':id')
   @GrpcMethod('VehicleService')
-  async findOne(data: VehicleById): Promise<Vehicle | null> {
-    return this.vehicleService.findOne({ id: data.id });
+  async findOne(id: ById): Promise<Vehicle | null> {
+    return this.vehicleService.findOne(id);
   }
 
   //@Patch(':id')
   @GrpcMethod('VehicleService')
   async update(updateVehicle: UpdateVehicle): Promise<Vehicle> {
-    const { id, ...data } = updateVehicle;
-    return this.vehicleService.update({ id }, data);
+    return this.vehicleService.update(updateVehicle);
   }
 
   //@Delete(':id')
   @GrpcMethod('VehicleService')
-  async remove(id: VehicleById): Promise<Vehicle> {
+  async remove(id: ById): Promise<Vehicle> {
     return this.vehicleService.remove(id);
   }
 }
